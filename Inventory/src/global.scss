@@ -1,0 +1,183 @@
+/*
+ * App Global CSS
+ * ----------------------------------------------------------------------------
+ * Put style rules here that you want to apply globally. These styles are for
+ * the entire app and not just one component. Additionally, this file can be
+ * used as an entry point to import other CSS/Sass files to be included in the
+ * output CSS.
+ * For more information on global stylesheets, visit the documentation:
+ * https://ionicframework.com/docs/layout/global-stylesheets
+ */
+
+/* Core CSS required for Ionic components to work properly */
+@import "@ionic/angular/css/core.css";
+
+/* Basic CSS for apps built with Ionic */
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+
+/* Optional CSS utils that can be commented out */
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+/**
+ * Ionic Dark Mode
+ * -----------------------------------------------------
+ * For more info, please see:
+ * https://ionicframework.com/docs/theming/dark-mode
+ */
+
+/* @import "@ionic/angular/css/palettes/dark.always.css"; */
+/* @import "@ionic/angular/css/palettes/dark.class.css"; */
+@import "@ionic/angular/css/palettes/dark.system.css";
+
+// ===== HireBiz Theme Styles =====
+// Import theme variables
+@import "./theme/variables.scss";
+
+// Global styles
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f9fafb;
+  color: #1f2937;
+}
+
+// Button styles
+button, ion-button {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: none;
+}
+
+.btn-primary {
+  --background: #7C3AED;
+  --color: white;
+  --border-radius: 8px;
+  font-weight: 600;
+  
+  &:hover {
+    --background: #6D28D9;
+  }
+}
+
+.btn-secondary {
+  --background: #10B981;
+  --color: white;
+  --border-radius: 8px;
+  font-weight: 600;
+  
+  &:hover {
+    --background: #059669;
+  }
+}
+
+// Card styles
+ion-card {
+  --background: white;
+  --border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+}
+
+// Input styles
+ion-input, ion-textarea {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --background: white;
+  --border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  transition: border-color 0.2s;
+  
+  &:focus {
+    --border-color: #7C3AED;
+  }
+}
+
+// Header styles
+ion-header {
+  --background: linear-gradient(135deg, #7C3AED 0%, #10B981 100%);
+  --ion-color-base: white;
+}
+
+ion-title {
+  color: white;
+  font-weight: 600;
+  font-size: 20px;
+}
+
+// Tab styles
+ion-tab-button {
+  --color: #9CA3AF;
+  --color-selected: #7C3AED;
+  font-weight: 500;
+  
+  &.tab-selected {
+    --color: #7C3AED;
+    border-bottom: 3px solid #7C3AED;
+  }
+}
+
+// Badges and tags
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  
+  &.badge-primary {
+    background-color: #EDE9FE;
+    color: #7C3AED;
+  }
+  
+  &.badge-secondary {
+    background-color: #D1FAE5;
+    color: #10B981;
+  }
+  
+  &.badge-danger {
+    background-color: #FEE2E2;
+    color: #EF4444;
+  }
+}
+
+// Shadows
+.shadow-sm {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-md {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-lg {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+// Text colors
+.text-primary {
+  color: #7C3AED;
+}
+
+.text-secondary {
+  color: #10B981;
+}
+
+.text-muted {
+  color: #9CA3AF;
+}
+
+// Responsive padding
+@media (max-width: 480px) {
+  ion-content {
+    --padding-bottom: 20px;
+    --padding-end: 16px;
+    --padding-start: 16px;
+    --padding-top: 16px;
+  }
+}
