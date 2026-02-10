@@ -44,9 +44,9 @@ export class HomePage {
           localStorage.setItem('user', JSON.stringify(res.user));
 
           if (role === 'IT') {
-            this.router.navigate(['/it-home']);
+            this.router.navigate(['/app/it-home']);
           } else if (role === 'USER') {
-            this.router.navigate(['/user-home']);
+            this.router.navigate(['/app/user-home']);
           } else {
             this.errorMessage = 'Unknown role';
           }
