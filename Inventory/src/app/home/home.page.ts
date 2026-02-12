@@ -51,12 +51,12 @@ export class HomePage {
             this.errorMessage = 'Unknown role';
           }
         } else {
-          this.errorMessage = res.message || 'Invalid login credentials';
+          this.errorMessage = 'Wrong password or username';
         }
       },
       error: (err) => {
         this.isLoading = false;
-        this.errorMessage = 'Server not reachable. Is backend running?';
+        this.errorMessage = 'Wrong password or username';
         console.error('Login error:', err);
       }
     });

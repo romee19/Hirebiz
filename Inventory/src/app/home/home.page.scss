@@ -105,11 +105,84 @@
   margin-bottom: 25px;
 }
 
+// Error Message Alert
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background-color: #fee2e2;
+  border: 2px solid #fca5a5;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  animation: slideDown 0.4s ease-out;
+}
+
+.error-message ion-icon {
+  font-size: 20px;
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+.error-message span {
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 // Form Group
 .form-group {
   position: relative;
   display: flex;
   align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.form-group.error .form-input {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+}
+
+.form-group.error .form-input:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
+}
+
+.form-group.error .input-icon {
+  color: #dc2626;
+}
+
+.field-error {
+  font-size: 12px;
+  color: #dc2626;
+  margin-top: 6px;
+  margin-left: 14px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  animation: slideDown 0.3s ease-out;
+  order: 2;
+}
+
+.field-error::before {
+  content: '⚠';
+  font-size: 14px;
+  flex-shrink: 0;
 }
 
 .form-input {
@@ -122,6 +195,7 @@
   color: #1f2937;
   transition: all 0.3s ease;
   font-family: inherit;
+  order: 1;
 
   &::placeholder {
     color: #9ca3af;
@@ -163,19 +237,33 @@
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 10px 25px rgba(124, 58, 237, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 
-  &:hover {
+  &:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 12px 30px rgba(124, 58, 237, 0.4);
   }
 
-  &:active {
+  &:active:not(:disabled) {
     transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  ion-spinner {
+    width: 20px;
+    height: 20px;
   }
 }
 
 // Secondary Links
-.secondary-links {
+.Forgot-Password {
   margin-top: 20px;
   text-align: center;
 }

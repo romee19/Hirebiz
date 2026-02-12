@@ -1,12 +1,27 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>it-home</ion-title>
-  </ion-toolbar>
-</ion-header>
+<ion-content>
+  <div class="home-container">
 
-<ion-content [fullscreen]="true">
+    <!-- LEFT TOP (Big activity / request list area) -->
+    <div class="div-1"></div>
 
-      <ion-title size="large">it-home</ion-title>
-      <ion-button (click)="handleClick()">klik</ion-button>
+    <!-- RIGHT TOP (Contains 3 small tabs stacked) -->
+    <div class="div-2">
+      <div class="tab">
+        <h2>New Requests</h2>
+      </div>
+      <div class="tab">
+        <h2>In-Progress</h2>
+      </div>
+      <div class="tab">
+        <h2>Completed</h2>
+      </div>
+    </div>
 
+    <!-- LEFT BOTTOM (Chart area) -->
+    <div class="div-3"></div>
+
+    <!-- RIGHT BOTTOM (Table / summary area) -->
+    <div class="div-4"></div>
+
+  </div>
 </ion-content>

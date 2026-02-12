@@ -1,9 +1,74 @@
 <ion-app>
-  <ion-menu><!-- Sidebar --></ion-menu>
-  <div id="main-content">
-    <ion-header>
-      <img src="assets/logo.png" alt="HireBiz Logo" class="header-logo">
-    </ion-header>
-    <ion-router-outlet></ion-router-outlet>  <!-- Child pages load here -->
+  <ion-header>
+    <div class="sidebar-logo">
+      <img src="assets/logo.png" alt="HireBiz Logo" class="logo-img">
+    </div>
+    <div class="user-info" (click)="toggleUserMenu()">
+      <div class="user-details">
+        <span class="user-name">{{ userName }}</span>
+        <p class="user-role">{{ userRole }}</p>
+      </div>
+      <ion-icon name="person-circle-outline"></ion-icon>
+      
+      <!-- User Dropdown Menu -->
+      <div class="user-menu" *ngIf="isUserMenuOpen" [@slideIn]>
+        <div class="user-menu-header">
+          <ion-icon name="person-circle-outline"></ion-icon>
+          <div>
+            <div class="menu-username">{{ userName }}</div>
+            <div class="menu-role">{{ userRole }}</div>
+          </div>
+          <ion-icon name="close" (click)="toggleUserMenu(); $event.stopPropagation()"></ion-icon>
+        </div>
+        <div class="menu-divider"></div>
+        <button class="menu-item" (click)="openNotificationSettings()">
+          <ion-icon name="notifications-outline"></ion-icon>
+          <span>Notification Settings</span>
+        </button>
+        <button class="menu-item" (click)="toggleDarkMode()">
+          <ion-icon name="moon-outline"></ion-icon>
+          <span>Dark Mode</span>
+          <div class="toggle-switch" [class.active]="isDarkMode"></div>
+        </button>
+        <button class="menu-item" (click)="openLanguageSettings()">
+          <ion-icon name="globe-outline"></ion-icon>
+          <span>Change Language</span>
+        </button>
+        <div class="menu-divider"></div>
+        <button class="menu-item logout-btn" (click)="logout()">
+          <ion-icon name="log-out-outline"></ion-icon>
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </div>
+  </ion-header>
+  <div class="layout-container">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      
+      <nav class="sidebar-nav">
+        <button class="nav-btn" (click)="navigate('/app/it-home')" routerLink="/app/it-home" routerLinkActive="active">
+          <ion-icon name="home-outline"></ion-icon>
+          <span>Home</span>
+        </button>
+        <button class="nav-btn" (click)="navigate('/app/it-inventory')" routerLink="/app/it-inventory" routerLinkActive="active">
+          <ion-icon name="layers-outline"></ion-icon>
+          <span>Inventory</span>
+        </button>
+        <button class="nav-btn" (click)="navigate('/app/it-floorplan')" routerLink="/app/it-floorplan" routerLinkActive="active">
+          <ion-icon name="grid-outline"></ion-icon>
+          <span>Floor Plan</span>
+        </button>
+        <button class="nav-btn" (click)="navigate('/app/it-request')" routerLink="/app/it-request" routerLinkActive="active">
+          <ion-icon name="add-circle-outline"></ion-icon>
+          <span>Request</span>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div id="main-content">
+      <ion-router-outlet></ion-router-outlet>  <!-- Child pages load here -->
+    </div>
   </div>
 </ion-app>

@@ -24,6 +24,12 @@
             <h2 class="form-title">LOGIN</h2>
           </div>
 
+          <!-- Error Notification -->
+          <div *ngIf="errorMessage" class="error-message">
+            <ion-icon name="close-circle-outline"></ion-icon>
+            <span>{{ errorMessage }}</span>
+          </div>
+
           <form class="login-form" (ngSubmit)="login()">
             <!-- Email Input -->
             <div class="form-group">

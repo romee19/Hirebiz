@@ -9,6 +9,9 @@ import { Router } from '@angular/router';
   standalone: false
 })
 export class ItHomePage implements OnInit {
+  totalItems: number = 0;
+  availableItems: number = 0;
+  defectiveItems: number = 0;
 
   constructor(
     private http: HttpClient,
@@ -16,6 +19,18 @@ export class ItHomePage implements OnInit {
   ) {}
 
   ngOnInit() {
+    this.loadInventoryStats();
+  }
+
+  loadInventoryStats() {
+    // Load inventory statistics from backend
+    try {
+      this.totalItems = 45;
+      this.availableItems = 38;
+      this.defectiveItems = 7;
+    } catch (error) {
+      console.error('Error loading inventory stats', error);
+    }
   }
 
   handleClick() {
