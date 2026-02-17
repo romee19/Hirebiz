@@ -31,9 +31,10 @@ app.post("/login", (req, res) => {
     if (err) return res.status(500).json({ success: false, error: "server_error" });
 
     if (result.length > 0) {
+      console.log("✅ Login success - user:", result[0].username, "role:", JSON.stringify(result[0].role));
       return res.json({
         success: true,
-        user: result[0] 
+        user: result[0]
       });
     } else {
       return res.json({ success: false });

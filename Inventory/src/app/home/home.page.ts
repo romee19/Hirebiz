@@ -40,12 +40,12 @@ export class HomePage {
       next: (res) => {
         this.isLoading = false;
         if (res.success) {
-          const role = res.user.role;
+          const role = res.user.role?.toUpperCase();
           localStorage.setItem('user', JSON.stringify(res.user));
 
-          if (role === 'IT') {
+          if (role === 'IT' || role === 'ADMIN') {
             this.router.navigate(['/app/it-home']);
-          } else if (role === 'USER') {
+          } else if (role === 'USER' || role === 'MANAGER') {
             this.router.navigate(['/app/user-home']);
           } else {
             this.errorMessage = 'Unknown role';
