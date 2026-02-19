@@ -1,13 +1,28 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>it-floorplan</ion-title>
-  </ion-toolbar>
-</ion-header>
+<ion-content>
+  <div class="list-container">
+    
+    <!-- LEGEND: Status indicators in top-right corner -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background:#9e9e9e;"></div>
+        <span>No Unit</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background:#4caf50;"></div>
+        <span>Single Unit</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background:#ff5722;"></div>
+        <span>Dual Monitor</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background:#f44336;"></div>
+        <span>No User</span>
+      </div>
+    </div>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">it-floorplan</ion-title>
-    </ion-toolbar>
-  </ion-header>
+    <button class="edit-button">+ Edit</button>
+    
+  </div>
+  
 </ion-content>

@@ -1,7 +1,12 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, Renderer2 } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
+
+interface Language {
+  code: string;
+  label: string;
+}
 
 @Component({
   selector: 'app-layout',
@@ -10,37 +15,54 @@ import { RouterModule, Router } from '@angular/router';
   standalone: true,
   imports: [IonicModule, CommonModule, RouterModule],
 })
-export class LayoutComponent  implements OnInit {
+export class LayoutComponent implements OnInit {
   userName: string = 'User';
   userRole: string = 'User';
   isUserMenuOpen: boolean = false;
   isDarkMode: boolean = false;
 
-  constructor(private router: Router, private cdr: ChangeDetectorRef) { }
+  // Language settings
+  showLanguageDropdown: boolean = false;
+  currentLanguage: string = 'en';
+  languages: Language[] = [
+    { code: 'en', label: 'English' },
+    { code: 'es', label: 'Español' },
+    { code: 'fr', label: 'Français' },
+    { code: 'de', label: 'Deutsch' },
+    { code: 'ja', label: '日本語' },
+  ];
+
+  constructor(
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+    private renderer: Renderer2
+  ) {}
 
   ngOnInit() {
     this.loadUserName();
     this.loadUserRole();
+
+    // Load and apply dark mode from localStorage
     this.isDarkMode = localStorage.getItem('darkMode') === 'true';
-    // Ensure change detection runs after loading
+    this.applyDarkMode(this.isDarkMode);
+
+    // Load saved language preference
+    this.currentLanguage = localStorage.getItem('language') || 'en';
+
     this.cdr.detectChanges();
   }
 
   loadUserName() {
     const user = localStorage.getItem('user');
-    console.log('localStorage user:', user);
     if (user) {
       try {
         const userData = JSON.parse(user);
-        console.log('Parsed userData:', userData);
         this.userName = userData.username || userData.name || 'User';
-        console.log('Set userName to:', this.userName);
       } catch (error) {
         console.error('Error parsing user data:', error);
         this.userName = 'User';
       }
     } else {
-      console.log('No user data in localStorage');
       this.userName = 'User';
     }
   }
@@ -51,7 +73,6 @@ export class LayoutComponent  implements OnInit {
       try {
         const userData = JSON.parse(user);
         this.userRole = userData.role || 'User';
-        console.log('Set userRole to:', this.userRole);
       } catch (error) {
         console.error('Error parsing user data:', error);
         this.userRole = 'User';
@@ -62,11 +83,13 @@ export class LayoutComponent  implements OnInit {
   }
 
   toggleUserMenu() {
-    // Reload user data each time menu opens to ensure it's up to date
     this.loadUserName();
     this.loadUserRole();
     this.cdr.detectChanges();
     this.isUserMenuOpen = !this.isUserMenuOpen;
+    if (!this.isUserMenuOpen) {
+      this.showLanguageDropdown = false;
+    }
   }
 
   logout() {
@@ -75,26 +98,50 @@ export class LayoutComponent  implements OnInit {
     this.isUserMenuOpen = false;
   }
 
+  switchAccount() {
+    localStorage.removeItem('user');
+    localStorage.removeItem('darkMode');
+    this.isDarkMode = false;
+    this.applyDarkMode(false);
+    this.isUserMenuOpen = false;
+    this.router.navigate(['/home']);
+  }
+
   openNotificationSettings() {
     console.log('Opening notification settings');
-    // Add notification settings logic
     this.isUserMenuOpen = false;
   }
 
   toggleDarkMode() {
     this.isDarkMode = !this.isDarkMode;
     localStorage.setItem('darkMode', this.isDarkMode.toString());
-    // Add dark mode toggle logic
+    this.applyDarkMode(this.isDarkMode);
   }
 
-  openLanguageSettings() {
-    console.log('Opening language settings');
-    // Add language settings logic
-    this.isUserMenuOpen = false;
+  private applyDarkMode(enabled: boolean) {
+    if (enabled) {
+      this.renderer.addClass(document.body, 'dark-theme');
+    } else {
+      this.renderer.removeClass(document.body, 'dark-theme');
+    }
+  }
+
+  toggleLanguageDropdown() {
+    this.showLanguageDropdown = !this.showLanguageDropdown;
+  }
+
+  selectLanguage(lang: Language) {
+    this.currentLanguage = lang.code;
+    localStorage.setItem('language', lang.code);
+    this.showLanguageDropdown = false;
+  }
+
+  getLanguageLabel(): string {
+    const lang = this.languages.find(l => l.code === this.currentLanguage);
+    return lang ? lang.label : 'English';
   }
 
   navigate(route: string) {
     this.router.navigate([route]);
   }
-
 }

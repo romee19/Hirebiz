@@ -6,6 +6,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Log device ID from every incoming request
+app.use((req, res, next) => {
+  const deviceId = req.headers['x-device-id'];
+  if (deviceId) {
+    console.log(`📱 Device: ${deviceId} → ${req.method} ${req.path}`);
+  }
+  next();
+});
+
 
 const db = mysql.createConnection({
   host: "localhost",

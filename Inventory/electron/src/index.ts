@@ -1,10 +1,13 @@
 import type { CapacitorElectronConfig } from '@capacitor-community/electron';
 import { getCapacitorElectronConfig, setupElectronDeepLinking } from '@capacitor-community/electron';
+import { randomUUID } from 'crypto';
 import type { MenuItemConstructorOptions } from 'electron';
-import { app, MenuItem } from 'electron';
+import { app, ipcMain, MenuItem } from 'electron';
 import electronIsDev from 'electron-is-dev';
 import unhandled from 'electron-unhandled';
 import { autoUpdater } from 'electron-updater';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { join } from 'path';
 
 import { ElectronCapacitorApp, setupContentSecurityPolicy, setupReloadWatcher } from './setup';
 
@@ -41,6 +44,27 @@ if (electronIsDev) {
 (async () => {
   // Wait for electron app to be ready.
   await app.whenReady();
+
+  // ── Device ID: generate once, persist forever ──
+  const deviceIdPath = join(app.getPath('userData'), 'device-id.json');
+  let deviceId: string;
+
+  if (existsSync(deviceIdPath)) {
+    try {
+      deviceId = JSON.parse(readFileSync(deviceIdPath, 'utf-8')).deviceId;
+    } catch {
+      deviceId = randomUUID();
+      writeFileSync(deviceIdPath, JSON.stringify({ deviceId }), 'utf-8');
+    }
+  } else {
+    deviceId = randomUUID();
+    writeFileSync(deviceIdPath, JSON.stringify({ deviceId }), 'utf-8');
+  }
+
+  // Expose device ID to renderer via IPC
+  ipcMain.handle('get-device-id', () => deviceId);
+  console.log('Device ID:', deviceId);
+
   // Security - Set Content-Security-Policy based on whether or not we are in dev mode.
   setupContentSecurityPolicy(myCapacitorApp.getCustomURLScheme());
   // Initialize our app, build windows, and load content.
