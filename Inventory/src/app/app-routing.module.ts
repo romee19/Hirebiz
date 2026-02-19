@@ -22,7 +22,11 @@ const routes: Routes = [
     path: '',
     redirectTo: 'home',
     pathMatch: 'full',
+  },  {
+    path: 'add-item-modal',
+    loadChildren: () => import('./add-item-modal/add-item-modal.module').then( m => m.AddItemModalPageModule)
   },
+
 ];
 
 @NgModule({

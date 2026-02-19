@@ -1,4 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
+import { ModalController } from '@ionic/angular';
+import { AddItemModalPage } from '../add-item-modal/add-item-modal.page';
 
 @Component({
   selector: 'app-it-inventory',
@@ -6,11 +8,17 @@ import { Component, OnInit } from '@angular/core';
   styleUrls: ['./it-inventory.page.scss'],
   standalone: false
 })
-export class ItInventoryPage implements OnInit {
+export class ItInventoryPage {
 
-  constructor() { }
+  constructor(private modalCtrl: ModalController) {}
 
-  ngOnInit() {
+  async openAddItemModal() {
+    const modal = await this.modalCtrl.create({
+      component: AddItemModalPage,
+      cssClass: 'import-file-modal'
+    });
+
+    await modal.present();
   }
 
 }

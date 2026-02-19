@@ -1,0 +1,20 @@
+.home-container{
+  padding-top: 80px;
+  padding-left: 210px;
+  width: 100%;
+  min-height: 100%;
+}
+
+ion-fab-button {
+  --background: #5560fd;
+  --background-hover: #4450e6;
+  --border-radius: 16px;
+  width: 110px;  
+  margin-right: 5px;
+}
+
+ion-fab-button ion-icon {
+  margin-right: 8px;  
+}
+
+

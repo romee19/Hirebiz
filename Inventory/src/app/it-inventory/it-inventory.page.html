@@ -1,13 +1,14 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>it-inventory</ion-title>
-  </ion-toolbar>
-</ion-header>
+<ion-content>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">it-inventory</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <div class="home-container">
+    <!-- Your page content here -->
+  </div>
+
+  <!-- Floating Add Button Bottom Right -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="openAddItemModal()">
+      <ion-icon name="add"></ion-icon> Add Item
+    </ion-fab-button>
+  </ion-fab>
+
 </ion-content>
