@@ -1,4 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+// it-floorplan.page.ts
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { IonPopover } from '@ionic/angular';
 
 @Component({
   selector: 'app-it-floorplan',
@@ -8,9 +10,23 @@ import { Component, OnInit } from '@angular/core';
 })
 export class ItFloorplanPage implements OnInit {
 
-  constructor() { }
+  @ViewChild(IonPopover) popover!: IonPopover;
 
-  ngOnInit() {
+  selectedColor = '#4caf50';
+
+  constructor() {}
+
+  ngOnInit() {}
+
+  selectColor(color: string) {
+    this.selectedColor = color;
   }
 
+  async saveEditSettings() {
+    // ✅ Put your actual apply/save logic here
+    // console.log('Saved:', this.selectedType, this.selectedColor);
+
+    // Close popover after save
+    if (this.popover) await this.popover.dismiss();
+  }
 }

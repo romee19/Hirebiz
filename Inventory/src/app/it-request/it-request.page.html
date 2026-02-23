@@ -1,6 +1,28 @@
 <ion-content>
-  <div class="list-container">
-    Request
+
+  <div class="request-container">
+
+
+    <div class="requests-board">
+      <div class="board-column" *ngFor="let col of columns">
+        <div class="column-header">
+          <div class="title">{{ col.label }}</div>
+          <ion-button fill="clear" class="add-btn" (click)="addRequest(col.status)">+
+          </ion-button>
+        </div>
+
+       <div class="cards">
+          <div class="request-card" *ngFor="let r of itemsByStatus(col.status)">
+           <div class="card-content">
+              <div class="card-title">{{ r.title }}</div>
+              <div class="card-meta">
+                <div class="avatar">{{ r.ownerInitials }}</div>
+               <div class="time">{{ r.time }} <span class="date">{{ r.date }}</span></div>
+             </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-  
 </ion-content>
