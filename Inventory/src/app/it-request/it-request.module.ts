@@ -7,13 +7,15 @@ import { IonicModule } from '@ionic/angular';
 import { ItRequestPageRoutingModule } from './it-request-routing.module';
 
 import { ItRequestPage } from './it-request.page';
+import { HttpClientModule } from '@angular/common/http';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    ItRequestPageRoutingModule
+    ItRequestPageRoutingModule,
+    HttpClientModule
   ],
   declarations: [ItRequestPage]
 })
