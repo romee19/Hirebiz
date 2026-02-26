@@ -25,12 +25,14 @@ export class ItRequestService {
    * @param userId - The ID of the user creating the request
    * @param username - The username of the creator
    * @param requestText - The request description/text
+   * @param reason - Optional reason for the request
    */
-  createRequest(userId: number, username: string, requestText: string): Observable<any> {
+  createRequest(userId: number, username: string, requestText: string, reason: string = ''): Observable<any> {
     const payload = {
       userId: userId || 1,
       username: username || 'Anonymous',
-      requestText
+      requestText,
+      reason
     };
     console.log('Sending request with payload:', payload);
     return this.http.post<any>(this.apiUrl, payload).pipe(
@@ -63,15 +65,13 @@ export class ItRequestService {
   }
 
   /**
-   * Update the status of an IT request - moves it from one table to another
+   * Update the status of an IT request
    * @param requestId - The ID of the request to update
-   * @param newStatus - The new status
-   * @param fromStatus - The current status (which table it's in)
+   * @param newStatus - The new status (new, inprogress, completed, rejected)
    */
-  updateRequestStatus(requestId: number, newStatus: string, fromStatus: string): Observable<any> {
+  updateRequestStatus(requestId: number, newStatus: string): Observable<any> {
     return this.http.put<any>(`${this.apiUrl}/${requestId}`, { 
-      status: newStatus,
-      fromStatus: fromStatus
+      status: newStatus
     }).pipe(
       tap((response) => {
         console.log('Request status updated:', response);

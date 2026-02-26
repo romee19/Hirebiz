@@ -1,0 +1,41 @@
+<div class="modal-content">
+  <div class="modal-header">
+    <h2>Submit A Request</h2>
+    <button class="close-btn" (click)="dismiss()">✕</button>
+  </div>
+
+  <div class="modal-body">
+    <div class="form-group">
+      <label>Cubicle Number</label>
+      <input 
+        type="text" 
+        class="form-input" 
+        [(ngModel)]="cubicleNumber" 
+        placeholder="Enter cubicle number"
+      />
+    </div>
+
+    <div class="form-group">
+      <label>Choose a Peripheral</label>
+      <select class="form-select" [(ngModel)]="peripheral">
+        <option value="">-- Select a Peripheral --</option>
+        <option *ngFor="let p of peripherals" [value]="p.value">{{ p.text }}</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Reason (optional)</label>
+      <textarea 
+        class="form-textarea" 
+        [(ngModel)]="reason" 
+        placeholder="Enter reason..."
+        rows="2"
+      ></textarea>
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button class="btn btn-cancel" (click)="dismiss()">CANCEL</button>
+    <button class="btn btn-submit" (click)="submit()">SUBMIT</button>
+  </div>
+</div>

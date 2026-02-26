@@ -1,265 +1,361 @@
+// server.js
 const express = require("express");
-const mysql = require("mysql2");
+const mysql = require("mysql2/promise");
 const cors = require("cors");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Log device ID from every incoming request
+// Log device ID
 app.use((req, res, next) => {
-  const deviceId = req.headers['x-device-id'];
+  const deviceId = req.headers["x-device-id"];
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  if (deviceId) {
-    console.log(`📱 Device: ${deviceId}`);
-  }
+  if (deviceId) console.log(`📱 Device: ${deviceId}`);
   next();
 });
 
-
-const db = mysql.createConnection({
+const pool = mysql.createPool({
   host: "localhost",
   user: "root",
-  password: "root",       
-  database: "hirebiz_db"
+  password: "root",
+  database: "hirebiz_db",
+  waitForConnections: true,
+  connectionLimit: 10,
 });
 
-db.connect((err) => {
-  if (err) {
-    console.error("❌ MySQL connection error:", err);
-  } else {
-    console.log("✅ MySQL connected!");
-    initializeTables();
+const statusTableMap = {
+  new: "`new`",
+  inprogress: "`inprogress`",
+  completed: "`completed`",
+  rejected: "`rejected`",
+};
+const validStatuses = Object.keys(statusTableMap);
+
+/* =========================
+   INIT TABLES
+========================= */
+async function initializeTables() {
+  const conn = await pool.getConnection();
+  try {
+    // statuses
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS statuses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        status_name VARCHAR(50) UNIQUE NOT NULL,
+        display_label VARCHAR(100) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // requests
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT,
+        username VARCHAR(255) NOT NULL,
+        request_text LONGTEXT NOT NULL,
+        reason LONGTEXT,
+        status VARCHAR(50) NOT NULL DEFAULT 'new',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (status) REFERENCES statuses(status_name),
+        INDEX idx_status (status),
+        INDEX idx_user_id (user_id),
+        INDEX idx_created_at (created_at)
+      );
+    `);
+
+    // status tables (with request_id UNIQUE)
+    const makeStatusTable = (name) => `
+      CREATE TABLE IF NOT EXISTS \`${name}\` (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        request_id INT UNIQUE,
+        user_id INT,
+        username VARCHAR(255) NOT NULL,
+        request_text LONGTEXT NOT NULL,
+        reason LONGTEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      );
+    `;
+
+    await conn.query(makeStatusTable("new"));
+    await conn.query(makeStatusTable("inprogress"));
+    await conn.query(makeStatusTable("completed"));
+    await conn.query(makeStatusTable("rejected"));
+
+    // seed statuses
+    const statuses = [
+      ["new", "New"],
+      ["inprogress", "In Progress"],
+      ["completed", "Completed"],
+      ["rejected", "Rejected"],
+    ];
+    for (const [statusName, label] of statuses) {
+      await conn.query(
+        "INSERT IGNORE INTO statuses (status_name, display_label) VALUES (?, ?)",
+        [statusName, label]
+      );
+    }
+
+    console.log("✅ Tables ready");
+  } finally {
+    conn.release();
   }
-});
-
-// Initialize database tables
-function initializeTables() {
-  // Drop old tables first if they exist
-  const dropTables = [
-    "DROP TABLE IF EXISTS `new`",
-    "DROP TABLE IF EXISTS `inprogress`",
-    "DROP TABLE IF EXISTS `completed`",
-    "DROP TABLE IF EXISTS `rejected`"
-  ];
-
-  dropTables.forEach(dropSql => {
-    db.query(dropSql, (err) => {
-      if (err) console.error("Error dropping table:", err);
-      else console.log("✅ Old table dropped");
-    });
-  });
-
-  // Table for NEW requests
-  const createNewTable = `
-    CREATE TABLE IF NOT EXISTS \`new\` (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT,
-      username VARCHAR(255) NOT NULL,
-      request_text LONGTEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    );
-  `;
-  
-  // Table for IN-PROGRESS requests
-  const createInProgressTable = `
-    CREATE TABLE IF NOT EXISTS \`inprogress\` (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT,
-      username VARCHAR(255) NOT NULL,
-      request_text LONGTEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    );
-  `;
-  
-  // Table for COMPLETED requests
-  const createCompletedTable = `
-    CREATE TABLE IF NOT EXISTS \`completed\` (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT,
-      username VARCHAR(255) NOT NULL,
-      request_text LONGTEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    );
-  `;
-  
-  // Table for REJECTED requests
-  const createRejectedTable = `
-    CREATE TABLE IF NOT EXISTS \`rejected\` (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT,
-      username VARCHAR(255) NOT NULL,
-      request_text LONGTEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    );
-  `;
-  
-  // Create all tables
-  db.query(createNewTable, (err) => {
-    if (err) console.error("❌ Error creating new requests table:", err);
-    else console.log("✅ New requests table ready");
-  });
-  
-  db.query(createInProgressTable, (err) => {
-    if (err) console.error("❌ Error creating in-progress requests table:", err);
-    else console.log("✅ In-progress requests table ready");
-  });
-  
-  db.query(createCompletedTable, (err) => {
-    if (err) console.error("❌ Error creating completed requests table:", err);
-    else console.log("✅ Completed requests table ready");
-  });
-  
-  db.query(createRejectedTable, (err) => {
-    if (err) console.error("❌ Error creating rejected requests table:", err);
-    else console.log("✅ Rejected requests table ready");
-  });
 }
 
-// ✅ LOGIN API (returns role)
-app.post("/login", (req, res) => {
-  const { username, password } = req.body;
+/* =========================
+   HELPER: ensure mirror tables match requests
+   - deletes from all status tables (even old rows with NULL request_id)
+   - inserts into the correct one based on requests.status
+========================= */
+async function syncStatusTablesForRequest(conn, requestId) {
+  // 1) load request
+  const [rows] = await conn.query("SELECT * FROM requests WHERE id = ?", [
+    requestId,
+  ]);
+  if (rows.length === 0) throw new Error("REQUEST_NOT_FOUND");
+  const reqRow = rows[0];
 
-  const sql = "SELECT id, username, role FROM users WHERE username=? AND password=? LIMIT 1";
-  db.query(sql, [username, password], (err, result) => {
-    if (err) return res.status(500).json({ success: false, error: "server_error" });
-
-    if (result.length > 0) {
-      console.log("✅ Login success - user:", result[0].username, "role:", JSON.stringify(result[0].role));
-      return res.json({
-        success: true,
-        user: result[0]
-      });
-    } else {
-      return res.json({ success: false });
-    }
-  });
-});
-
-// Test route
-app.post("/test", (req, res) => {
-  console.log("TEST ENDPOINT HIT");
-  res.json({ success: true, message: "test works" });
-});
-
-// Simple API test
-app.post("/api-test", (req, res) => {
-  console.log("API TEST ENDPOINT HIT");
-  res.json({ success: true, message: "api test works" });
-});
-
-// ✅ CREATE NEW IT REQUEST - Always goes to 'new' table
-app.post("/api/it-requests", (req, res) => {
-  const { userId, username, requestText } = req.body;
-
-  if (!username || !requestText) {
-    return res.status(400).json({ success: false, error: "Missing required fields: username and requestText" });
-  }
-
-  const sql = "INSERT INTO `new` (user_id, username, request_text) VALUES (?, ?, ?)";
-  db.query(sql, [userId, username, requestText], (err, result) => {
-    if (err) {
-      console.error("❌ Error creating IT request:", err);
-      return res.status(500).json({ success: false, error: "server_error" });
-    }
-    
-    console.log("✅ IT Request created - ID:", result.insertId, "by:", username);
-    res.json({
-      success: true,
-      requestId: result.insertId,
-      message: "Request created successfully"
-    });
-  });
-});
-
-// ✅ GET ALL IT REQUESTS - Union queries from all tables
-app.get("/api/it-requests", (req, res) => {
-  const newSql = "SELECT id, username, request_text, 'new' as status, created_at, updated_at FROM `new`";
-  const inProgressSql = "SELECT id, username, request_text, 'inprogress' as status, created_at, updated_at FROM `inprogress`";
-  const completedSql = "SELECT id, username, request_text, 'completed' as status, created_at, updated_at FROM `completed`";
-  const rejectedSql = "SELECT id, username, request_text, 'rejected' as status, created_at, updated_at FROM `rejected`";
-  
-  const unionSql = `(${newSql}) UNION (${inProgressSql}) UNION (${completedSql}) UNION (${rejectedSql}) ORDER BY created_at DESC`;
-  
-  db.query(unionSql, (err, result) => {
-    if (err) {
-      console.error("❌ Error fetching IT requests:", err);
-      return res.status(500).json({ success: false, error: "server_error" });
-    }
-    
-    res.json({
-      success: true,
-      requests: result
-    });
-  });
-});
-
-// ✅ UPDATE IT REQUEST STATUS - Move from one table to another
-app.put("/api/it-requests/:id", (req, res) => {
-  const { id } = req.params;
-  const { status, fromStatus } = req.body;
-
-  if (!status || !fromStatus) {
-    return res.status(400).json({ success: false, error: "Status and fromStatus are required" });
-  }
-
-  const statusTableMap = {
-    'new': '`new`',
-    'inprogress': '`inprogress`',
-    'completed': '`completed`',
-    'rejected': '`rejected`'
+  // 2) Strong delete from ALL status tables:
+  //    - delete by request_id
+  //    - delete by legacy id
+  //    - delete by matching row content (fixes old rows where request_id is NULL)
+  const del = async (table) => {
+    await conn.query(
+      `
+      DELETE FROM ${table}
+      WHERE request_id = ?
+         OR id = ?
+         OR (
+              (user_id <=> ?)
+              AND username = ?
+              AND request_text = ?
+            )
+      `,
+      [requestId, requestId, reqRow.user_id, reqRow.username, reqRow.request_text]
+    );
   };
 
-  const fromTable = statusTableMap[fromStatus];
-  const toTable = statusTableMap[status];
+  await del("`new`");
+  await del("`inprogress`");
+  await del("`completed`");
+  await del("`rejected`");
 
-  if (!fromTable || !toTable) {
+  // 3) Insert into correct status table based on requests.status
+  const targetTable = statusTableMap[reqRow.status];
+  if (!targetTable) throw new Error("INVALID_STATUS_IN_DB");
+
+  await conn.query(
+    `
+    INSERT INTO ${targetTable}
+      (request_id, user_id, username, request_text, reason)
+    VALUES (?, ?, ?, ?, ?)
+    `,
+    [requestId, reqRow.user_id, reqRow.username, reqRow.request_text, reqRow.reason]
+  );
+}
+
+/* =========================
+   AUTH
+========================= */
+app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const [rows] = await pool.query(
+      "SELECT id, username, role FROM users WHERE username=? AND password=? LIMIT 1",
+      [username, password]
+    );
+    if (rows.length === 0) return res.json({ success: false });
+    res.json({ success: true, user: rows[0] });
+  } catch (e) {
+    console.error("❌ Login error:", e);
+    res.status(500).json({ success: false, error: "server_error" });
+  }
+});
+
+/* =========================
+   CREATE REQUEST
+   - insert into requests
+   - mirror into `new`
+========================= */
+app.post("/api/it-requests", async (req, res) => {
+  const { userId, username, requestText, reason } = req.body;
+
+  if (!username || !requestText) {
+    return res.status(400).json({
+      success: false,
+      error: "Missing required fields: username, requestText",
+    });
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // insert into requests
+    const [result] = await conn.query(
+      "INSERT INTO requests (user_id, username, request_text, reason, status) VALUES (?, ?, ?, ?, 'new')",
+      [userId || null, username, requestText, reason || null]
+    );
+
+    const requestId = result.insertId;
+
+    // mirror to status table based on current status
+    await syncStatusTablesForRequest(conn, requestId);
+
+    await conn.commit();
+    res.json({ success: true, requestId });
+  } catch (e) {
+    await conn.rollback();
+    console.error("❌ Create request error:", e);
+    res.status(500).json({ success: false });
+  } finally {
+    conn.release();
+  }
+});
+
+/* =========================
+   GET ALL REQUESTS (main table)
+========================= */
+app.get("/api/it-requests", async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT id, user_id, username, request_text, reason, status, created_at, updated_at FROM requests ORDER BY created_at DESC"
+    );
+    res.json({ success: true, requests: rows });
+  } catch (e) {
+    console.error("❌ Get requests error:", e);
+    res.status(500).json({ success: false });
+  }
+});
+
+/* =========================
+   GET BY STATUS (uses main table)
+========================= */
+app.get("/api/it-requests/status/:status", async (req, res) => {
+  const { status } = req.params;
+  if (!validStatuses.includes(status)) {
     return res.status(400).json({ success: false, error: "Invalid status" });
   }
 
-  // First, get the request from the old table
-  const selectSql = `SELECT user_id, username, request_text FROM ${fromTable} WHERE id = ?`;
-  db.query(selectSql, [id], (err, result) => {
-    if (err || result.length === 0) {
-      console.error("❌ Error fetching request:", err);
-      return res.status(404).json({ success: false, error: "Request not found" });
+  try {
+    const [rows] = await pool.query(
+      "SELECT * FROM requests WHERE status = ? ORDER BY created_at DESC",
+      [status]
+    );
+    res.json({ success: true, requests: rows });
+  } catch (e) {
+    console.error("❌ Get by status error:", e);
+    res.status(500).json({ success: false });
+  }
+});
+
+/* =========================
+   UPDATE STATUS (MOVE)
+   - update requests.status
+   - then rebuild mirror row into correct status table
+========================= */
+app.put("/api/it-requests/:id", async (req, res) => {
+  const requestId = Number(req.params.id);
+  const { status } = req.body;
+
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ success: false, error: "Invalid status" });
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // check exists
+    const [exists] = await conn.query("SELECT id FROM requests WHERE id = ?", [
+      requestId,
+    ]);
+    if (exists.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ success: false, error: "Not found" });
     }
 
-    const { user_id, username, request_text } = result[0];
+    // 1) update main requests table FIRST
+    await conn.query("UPDATE requests SET status = ? WHERE id = ?", [
+      status,
+      requestId,
+    ]);
 
-    // Insert into new table
-    const insertSql = `INSERT INTO ${toTable} (id, user_id, username, request_text) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP`;
-    db.query(insertSql, [id, user_id, username, request_text], (err) => {
-      if (err) {
-        console.error("❌ Error inserting into new table:", err);
-        return res.status(500).json({ success: false, error: "server_error" });
-      }
+    // 2) sync mirror tables based on requests.status
+    await syncStatusTablesForRequest(conn, requestId);
 
-      // Delete from old table
-      const deleteSql = `DELETE FROM ${fromTable} WHERE id = ?`;
-      db.query(deleteSql, [id], (err) => {
-        if (err) {
-          console.error("❌ Error deleting from old table:", err);
-          return res.status(500).json({ success: false, error: "server_error" });
-        }
-
-        console.log("✅ IT Request moved - ID:", id, "from:", fromStatus, "to:", status);
-        res.json({ success: true, message: "Request updated successfully" });
-      });
-    });
-  });
+    await conn.commit();
+    console.log(`✅ Request ${requestId} moved to ${status}`);
+    res.json({ success: true });
+  } catch (e) {
+    await conn.rollback();
+    console.error("❌ Update status error:", e);
+    res.status(500).json({ success: false });
+  } finally {
+    conn.release();
+  }
 });
 
-// Catch-all 404 handler
+/* =========================
+   OPTIONAL: REBUILD ALL MIRRORS (repair endpoint)
+   - clears 4 status tables
+   - inserts from requests table based on status
+========================= */
+app.post("/api/rebuild-status-tables", async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    await conn.query("TRUNCATE TABLE `new`");
+    await conn.query("TRUNCATE TABLE `inprogress`");
+    await conn.query("TRUNCATE TABLE `completed`");
+    await conn.query("TRUNCATE TABLE `rejected`");
+
+    // insert-select per status
+    for (const st of validStatuses) {
+      const table = statusTableMap[st];
+      await conn.query(
+        `
+        INSERT INTO ${table} (request_id, user_id, username, request_text, reason)
+        SELECT id, user_id, username, request_text, reason
+        FROM requests
+        WHERE status = ?
+        `,
+        [st]
+      );
+    }
+
+    await conn.commit();
+    res.json({ success: true, message: "Rebuilt status tables from requests" });
+  } catch (e) {
+    await conn.rollback();
+    console.error("❌ Rebuild error:", e);
+    res.status(500).json({ success: false });
+  } finally {
+    conn.release();
+  }
+});
+
+/* =========================
+   404
+========================= */
 app.use((req, res) => {
-  console.log(`404 - ${req.method} ${req.path} not found`);
-  res.status(404).json({ error: "Route not found", path: req.path, method: req.method });
+  res.status(404).json({ error: "Route not found", path: req.path });
 });
 
-app.listen(3000, () => {
-  console.log("✅ API running at http://localhost:3000");
-});
+/* =========================
+   START
+========================= */
+(async () => {
+  try {
+    await initializeTables();
+    app.listen(3000, () => console.log("✅ API running at http://localhost:3000"));
+  } catch (e) {
+    console.error("❌ Failed to init:", e);
+    process.exit(1);
+  }
+})();

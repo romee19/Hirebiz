@@ -22,84 +22,85 @@
     </div>
 
     <!-- EDIT BUTTON -->
-    <button class="edit-button" id="editBtn">+ Edit</button>
+    <button class="edit-button" type="button" (click)="toggleToolbox()">+ Edit</button>
 
-    <!-- TOOLBOX POPOVER -->
-    <ion-popover
-      trigger="editBtn"
-      triggerAction="click"
-      [dismissOnSelect]="false"
-      [showBackdrop]="false"
-      cssClass="edit-popover"
-      side="top"
-      alignment="center"
+    <!-- DRAGGABLE FLOATING TOOLBOX -->
+    <div
+      class="toolbox"
+      *ngIf="toolboxOpen"
+      [ngStyle]="{ left: toolboxX + 'px', top: toolboxY + 'px' }"
     >
-      <ng-template>
-        <div class="tool-panel">
+      <!-- Drag handle (grab here) -->
+      <div
+        class="toolbox-handle"
+        (pointerdown)="onDragStart($event)"
+      >
+        <div class="tool-pill"></div>
+        <div class="tool-label">Cubicle</div>
 
-          <div class="tool-top">
-            <div class="tool-pill"></div>
-            <div class="tool-label">Cubicle</div>
-          </div>
+        <button class="toolbox-close" type="button" (click)="closeToolbox()">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
 
-          <div class="tool-mid">
-            <div class="swatches">
-              <div class="sw-row">
-                <button class="swatch"
-                  type="button"
-                  [style.background]="'#9e9e9e'"
-                  [class.active]="selectedColor === '#9e9e9e'"
-                  (click)="selectColor('#9e9e9e')">
-                </button>
+      <!-- Body -->
+      <div class="toolbox-body">
+        <div class="tool-mid">
+          <div class="swatches">
+            <div class="sw-row">
+              <button class="swatch"
+                type="button"
+                [style.background]="'#9e9e9e'"
+                [class.active]="selectedColor === '#9e9e9e'"
+                (click)="selectColor('#9e9e9e')">
+              </button>
 
-                <button class="swatch"
-                  type="button"
-                  [style.background]="'#4caf50'"
-                  [class.active]="selectedColor === '#4caf50'"
-                  (click)="selectColor('#4caf50')">
-                </button>
-              </div>
-
-              <div class="sw-row">
-                <button class="swatch"
-                  type="button"
-                  [style.background]="'#000000'"
-                  [class.active]="selectedColor === '#000000'"
-                  (click)="selectColor('#000000')">
-                </button>
-
-                <button class="swatch"
-                  type="button"
-                  [style.background]="'#f44336'"
-                  [class.active]="selectedColor === '#f44336'"
-                  (click)="selectColor('#f44336')">
-                </button>
-              </div>
-
-              <div class="sw-row">
-                <button class="swatch"
-                  type="button"
-                  [style.background]="'#ff5722'"
-                  [class.active]="selectedColor === '#ff5722'"
-                  (click)="selectColor('#ff5722')">
-                </button>
-              </div>
+              <button class="swatch"
+                type="button"
+                [style.background]="'#4caf50'"
+                [class.active]="selectedColor === '#4caf50'"
+                (click)="selectColor('#4caf50')">
+              </button>
             </div>
 
-            <button class="brush-btn" type="button">
-              <ion-icon name="brush-outline"></ion-icon>
-            </button>
+            <div class="sw-row">
+              <button class="swatch"
+                type="button"
+                [style.background]="'#000000'"
+                [class.active]="selectedColor === '#000000'"
+                (click)="selectColor('#000000')">
+              </button>
+
+              <button class="swatch"
+                type="button"
+                [style.background]="'#f44336'"
+                [class.active]="selectedColor === '#f44336'"
+                (click)="selectColor('#f44336')">
+              </button>
+            </div>
+
+            <div class="sw-row">
+              <button class="swatch"
+                type="button"
+                [style.background]="'#ff5722'"
+                [class.active]="selectedColor === '#ff5722'"
+                (click)="selectColor('#ff5722')">
+              </button>
+            </div>
           </div>
 
-          <div class="tool-footer">
-            <button class="save-btn" type="button" (click)="saveEditSettings()">
-              Save
-            </button>
-          </div>
-
+          <button class="brush-btn" type="button">
+            <ion-icon name="brush-outline"></ion-icon>
+          </button>
         </div>
-      </ng-template>
-    </ion-popover>
+
+        <div class="tool-footer">
+          <button class="save-btn" type="button" (click)="saveEditSettings()">
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
 
   </div>
 </ion-content>
