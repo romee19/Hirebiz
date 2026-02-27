@@ -22,7 +22,14 @@
     </div>
 
     <!-- EDIT BUTTON -->
-    <button class="edit-button" type="button" (click)="toggleToolbox()">+ Edit</button>
+    <button
+      #editBtn
+      class="edit-button"
+      type="button"
+      (click)="toggleToolbox(editBtn)"
+    >
+      + Edit
+    </button>
 
     <!-- DRAGGABLE FLOATING TOOLBOX -->
     <div
@@ -31,13 +38,7 @@
       [ngStyle]="{ left: toolboxX + 'px', top: toolboxY + 'px' }"
     >
       <!-- Drag handle (grab here) -->
-      <div
-        class="toolbox-handle"
-        (pointerdown)="onDragStart($event)"
-      >
-        <div class="tool-pill"></div>
-        <div class="tool-label">Cubicle</div>
-
+      <div class="toolbox-handle" (pointerdown)="onDragStart($event)">
         <button class="toolbox-close" type="button" (click)="closeToolbox()">
           <ion-icon name="close-outline"></ion-icon>
         </button>
@@ -48,49 +49,59 @@
         <div class="tool-mid">
           <div class="swatches">
             <div class="sw-row">
-              <button class="swatch"
+              <!-- Tool Pill for adding cubicles -->
+              <button class="tool-pill" (click)="addCubicle()"></button>
+              <div class="tool-label">Cubicle</div>
+            </div>
+            <div class="sw-row">
+              <button
+                class="swatch"
                 type="button"
                 [style.background]="'#9e9e9e'"
                 [class.active]="selectedColor === '#9e9e9e'"
-                (click)="selectColor('#9e9e9e')">
-              </button>
+                (click)="selectColor('#9e9e9e')"
+              ></button>
 
-              <button class="swatch"
+              <button
+                class="swatch"
                 type="button"
                 [style.background]="'#4caf50'"
                 [class.active]="selectedColor === '#4caf50'"
-                (click)="selectColor('#4caf50')">
-              </button>
+                (click)="selectColor('#4caf50')"
+              ></button>
             </div>
 
             <div class="sw-row">
-              <button class="swatch"
+              <button
+                class="swatch"
                 type="button"
                 [style.background]="'#000000'"
                 [class.active]="selectedColor === '#000000'"
-                (click)="selectColor('#000000')">
-              </button>
+                (click)="selectColor('#000000')"
+              ></button>
 
-              <button class="swatch"
+              <button
+                class="swatch"
                 type="button"
                 [style.background]="'#f44336'"
                 [class.active]="selectedColor === '#f44336'"
-                (click)="selectColor('#f44336')">
-              </button>
+                (click)="selectColor('#f44336')"
+              ></button>
             </div>
 
             <div class="sw-row">
-              <button class="swatch"
+              <button
+                class="swatch"
                 type="button"
                 [style.background]="'#ff5722'"
                 [class.active]="selectedColor === '#ff5722'"
-                (click)="selectColor('#ff5722')">
-              </button>
+                (click)="selectColor('#ff5722')"
+              ></button>
             </div>
           </div>
 
           <button class="brush-btn" type="button">
-            <ion-icon name="brush-outline"></ion-icon>
+            <ion-icon name="color-fill"></ion-icon>
           </button>
         </div>
 
@@ -100,6 +111,11 @@
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- Display generated cubicles dynamically -->
+    <div class="cubicle" *ngFor="let cubicle of cubicles" [ngStyle]="{ left: cubicle.x + 'px', top: cubicle.y + 'px' }">
+      {{ cubicle.label }}
     </div>
 
   </div>
