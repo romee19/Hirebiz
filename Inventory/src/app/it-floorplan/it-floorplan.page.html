@@ -1,5 +1,5 @@
 <ion-content>
-  <div class="list-container">
+  <div class="list-container" #containerRef [class.painting]="paintMode">
 
     <!-- LEGEND -->
     <div class="legend">
@@ -37,22 +37,21 @@
       *ngIf="toolboxOpen"
       [ngStyle]="{ left: toolboxX + 'px', top: toolboxY + 'px' }"
     >
-      <!-- Drag handle (grab here) -->
-      <div class="toolbox-handle" (pointerdown)="onDragStart($event)">
+      <div class="toolbox-handle" (pointerdown)="onToolboxDragStart($event)">
         <button class="toolbox-close" type="button" (click)="closeToolbox()">
           <ion-icon name="close-outline"></ion-icon>
         </button>
       </div>
 
-      <!-- Body -->
       <div class="toolbox-body">
         <div class="tool-mid">
           <div class="swatches">
             <div class="sw-row">
-              <!-- Tool Pill for adding cubicles -->
-              <button class="tool-pill" (click)="addCubicle()"></button>
+              <!-- Add cubicle -->
+              <button class="tool-pill" type="button" (click)="addCubicle()"></button>
               <div class="tool-label">Cubicle</div>
             </div>
+
             <div class="sw-row">
               <button
                 class="swatch"
@@ -100,7 +99,13 @@
             </div>
           </div>
 
-          <button class="brush-btn" type="button">
+          <!-- Paint / Fill Mode -->
+          <button
+            class="brush-btn"
+            type="button"
+            [class.active]="paintMode"
+            (click)="togglePaintMode()"
+          >
             <ion-icon name="color-fill"></ion-icon>
           </button>
         </div>
@@ -113,9 +118,30 @@
       </div>
     </div>
 
-    <!-- Display generated cubicles dynamically -->
-    <div class="cubicle" *ngFor="let cubicle of cubicles" [ngStyle]="{ left: cubicle.x + 'px', top: cubicle.y + 'px' }">
-      {{ cubicle.label }}
+    <!-- CUBICLES -->
+    <div
+      class="cubicle"
+      *ngFor="let c of cubicles"
+      [class.editing]="isEditMode"
+      [class.selected]="selectedCubicleId === c.id"
+      [ngStyle]="{
+        left: c.x + 'px',
+        top: c.y + 'px',
+        width: c.w + 'px',
+        height: c.h + 'px',
+        background: c.color
+      }"
+      (dblclick)="deleteCubicle(c.id)"
+      (pointerdown)="onCubiclePointerDown($event, c)"
+    >
+      <div class="cubicle-label">{{ c.label }}</div>
+
+      <!-- resize handle only in edit mode -->
+      <div
+        class="resize-handle"
+        *ngIf="isEditMode"
+        (pointerdown)="onResizeStart($event, c)"
+      ></div>
     </div>
 
   </div>

@@ -1,27 +1,32 @@
 // server.js
+require("dotenv").config();
+
 const express = require("express");
-const mysql = require("mysql2/promise");
 const cors = require("cors");
 
+// ✅ use your separate pool file (db.js)
+// (put db.js in the SAME folder as server.js)
+const pool = require("./db");
+
 const app = express();
-app.use(cors());
+
+// ✅ CORS (allow all for dev). You can tighten later.
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "x-device-id"],
+  })
+);
+
 app.use(express.json());
 
-// Log device ID
+// ✅ Log device ID + request
 app.use((req, res, next) => {
   const deviceId = req.headers["x-device-id"];
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   if (deviceId) console.log(`📱 Device: ${deviceId}`);
   next();
-});
-
-const pool = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "root",
-  database: "hirebiz_db",
-  waitForConnections: true,
-  connectionLimit: 10,
 });
 
 const statusTableMap = {
@@ -38,7 +43,7 @@ const validStatuses = Object.keys(statusTableMap);
 async function initializeTables() {
   const conn = await pool.getConnection();
   try {
-    // statuses
+    // ✅ statuses
     await conn.query(`
       CREATE TABLE IF NOT EXISTS statuses (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -48,7 +53,7 @@ async function initializeTables() {
       );
     `);
 
-    // requests
+    // ✅ requests
     await conn.query(`
       CREATE TABLE IF NOT EXISTS requests (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -66,7 +71,7 @@ async function initializeTables() {
       );
     `);
 
-    // status tables (with request_id UNIQUE)
+    // ✅ status tables (with request_id UNIQUE)
     const makeStatusTable = (name) => `
       CREATE TABLE IF NOT EXISTS \`${name}\` (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -85,7 +90,7 @@ async function initializeTables() {
     await conn.query(makeStatusTable("completed"));
     await conn.query(makeStatusTable("rejected"));
 
-    // seed statuses
+    // ✅ seed statuses
     const statuses = [
       ["new", "New"],
       ["inprogress", "In Progress"],
@@ -99,7 +104,26 @@ async function initializeTables() {
       );
     }
 
-    console.log("✅ Tables ready");
+    /* =========================
+       ✅ FLOORPLANS TABLE
+       - room_id is unique per user
+       - layout_json stores your floorplan JSON (cubicles/toolbox/etc)
+    ========================= */
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS floorplans (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id VARCHAR(100) NOT NULL,
+        room_id VARCHAR(100) NOT NULL,
+        layout_json LONGTEXT NOT NULL,
+        version INT NOT NULL DEFAULT 1,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_user_room (user_id, room_id),
+        INDEX idx_user_id (user_id),
+        INDEX idx_room_id (room_id)
+      );
+    `);
+
+    console.log("✅ Tables ready (requests + floorplans)");
   } finally {
     conn.release();
   }
@@ -107,21 +131,14 @@ async function initializeTables() {
 
 /* =========================
    HELPER: ensure mirror tables match requests
-   - deletes from all status tables (even old rows with NULL request_id)
-   - inserts into the correct one based on requests.status
 ========================= */
 async function syncStatusTablesForRequest(conn, requestId) {
-  // 1) load request
   const [rows] = await conn.query("SELECT * FROM requests WHERE id = ?", [
     requestId,
   ]);
   if (rows.length === 0) throw new Error("REQUEST_NOT_FOUND");
   const reqRow = rows[0];
 
-  // 2) Strong delete from ALL status tables:
-  //    - delete by request_id
-  //    - delete by legacy id
-  //    - delete by matching row content (fixes old rows where request_id is NULL)
   const del = async (table) => {
     await conn.query(
       `
@@ -143,7 +160,6 @@ async function syncStatusTablesForRequest(conn, requestId) {
   await del("`completed`");
   await del("`rejected`");
 
-  // 3) Insert into correct status table based on requests.status
   const targetTable = statusTableMap[reqRow.status];
   if (!targetTable) throw new Error("INVALID_STATUS_IN_DB");
 
@@ -177,9 +193,7 @@ app.post("/login", async (req, res) => {
 });
 
 /* =========================
-   CREATE REQUEST
-   - insert into requests
-   - mirror into `new`
+   REQUESTS API
 ========================= */
 app.post("/api/it-requests", async (req, res) => {
   const { userId, username, requestText, reason } = req.body;
@@ -195,7 +209,6 @@ app.post("/api/it-requests", async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    // insert into requests
     const [result] = await conn.query(
       "INSERT INTO requests (user_id, username, request_text, reason, status) VALUES (?, ?, ?, ?, 'new')",
       [userId || null, username, requestText, reason || null]
@@ -203,7 +216,6 @@ app.post("/api/it-requests", async (req, res) => {
 
     const requestId = result.insertId;
 
-    // mirror to status table based on current status
     await syncStatusTablesForRequest(conn, requestId);
 
     await conn.commit();
@@ -217,9 +229,6 @@ app.post("/api/it-requests", async (req, res) => {
   }
 });
 
-/* =========================
-   GET ALL REQUESTS (main table)
-========================= */
 app.get("/api/it-requests", async (req, res) => {
   try {
     const [rows] = await pool.query(
@@ -232,9 +241,6 @@ app.get("/api/it-requests", async (req, res) => {
   }
 });
 
-/* =========================
-   GET BY STATUS (uses main table)
-========================= */
 app.get("/api/it-requests/status/:status", async (req, res) => {
   const { status } = req.params;
   if (!validStatuses.includes(status)) {
@@ -253,11 +259,6 @@ app.get("/api/it-requests/status/:status", async (req, res) => {
   }
 });
 
-/* =========================
-   UPDATE STATUS (MOVE)
-   - update requests.status
-   - then rebuild mirror row into correct status table
-========================= */
 app.put("/api/it-requests/:id", async (req, res) => {
   const requestId = Number(req.params.id);
   const { status } = req.body;
@@ -270,7 +271,6 @@ app.put("/api/it-requests/:id", async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    // check exists
     const [exists] = await conn.query("SELECT id FROM requests WHERE id = ?", [
       requestId,
     ]);
@@ -279,13 +279,11 @@ app.put("/api/it-requests/:id", async (req, res) => {
       return res.status(404).json({ success: false, error: "Not found" });
     }
 
-    // 1) update main requests table FIRST
     await conn.query("UPDATE requests SET status = ? WHERE id = ?", [
       status,
       requestId,
     ]);
 
-    // 2) sync mirror tables based on requests.status
     await syncStatusTablesForRequest(conn, requestId);
 
     await conn.commit();
@@ -300,11 +298,6 @@ app.put("/api/it-requests/:id", async (req, res) => {
   }
 });
 
-/* =========================
-   OPTIONAL: REBUILD ALL MIRRORS (repair endpoint)
-   - clears 4 status tables
-   - inserts from requests table based on status
-========================= */
 app.post("/api/rebuild-status-tables", async (req, res) => {
   const conn = await pool.getConnection();
   try {
@@ -315,7 +308,6 @@ app.post("/api/rebuild-status-tables", async (req, res) => {
     await conn.query("TRUNCATE TABLE `completed`");
     await conn.query("TRUNCATE TABLE `rejected`");
 
-    // insert-select per status
     for (const st of validStatuses) {
       const table = statusTableMap[st];
       await conn.query(
@@ -341,6 +333,115 @@ app.post("/api/rebuild-status-tables", async (req, res) => {
 });
 
 /* =========================
+   ✅ FLOORPLAN API (REST)
+   Typical endpoints:
+   POST /floorplans/:roomId (save)
+   GET  /floorplans/:roomId (load)
+   GET  /floorplans?userId=... (list)
+========================= */
+
+// ✅ SAVE floorplan
+app.post("/floorplans/:roomId", async (req, res) => {
+  const { roomId } = req.params;
+  const { userId, layout } = req.body;
+
+  if (!userId || !roomId || !layout) {
+    return res.status(400).json({
+      success: false,
+      error: "Missing required fields: userId, roomId, layout",
+    });
+  }
+
+  try {
+    const layoutJson = JSON.stringify(layout);
+
+    // Upsert: insert if not exists, else update + increment version
+    await pool.query(
+      `
+      INSERT INTO floorplans (user_id, room_id, layout_json, version)
+      VALUES (?, ?, ?, 1)
+      ON DUPLICATE KEY UPDATE
+        layout_json = VALUES(layout_json),
+        version = version + 1
+      `,
+      [String(userId), String(roomId), layoutJson]
+    );
+
+    const [rows] = await pool.query(
+      "SELECT id, user_id, room_id, version, updated_at FROM floorplans WHERE user_id=? AND room_id=? LIMIT 1",
+      [String(userId), String(roomId)]
+    );
+
+    res.json({ success: true, floorplan: rows[0] });
+  } catch (e) {
+    console.error("❌ Save floorplan error:", e);
+    res.status(500).json({ success: false, error: "server_error" });
+  }
+});
+
+// ✅ LOAD floorplan
+app.get("/floorplans/:roomId", async (req, res) => {
+  const { roomId } = req.params;
+  const userId = req.query.userId;
+
+  if (!userId || !roomId) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Missing query userId or param roomId" });
+  }
+
+  try {
+    const [rows] = await pool.query(
+      "SELECT layout_json, version, updated_at FROM floorplans WHERE user_id=? AND room_id=? LIMIT 1",
+      [String(userId), String(roomId)]
+    );
+
+    if (rows.length === 0) {
+      return res.json({ success: true, floorplan: null });
+    }
+
+    const fp = rows[0];
+    res.json({
+      success: true,
+      floorplan: {
+        layout: JSON.parse(fp.layout_json),
+        version: fp.version,
+        updatedAt: fp.updated_at,
+      },
+    });
+  } catch (e) {
+    console.error("❌ Load floorplan error:", e);
+    res.status(500).json({ success: false, error: "server_error" });
+  }
+});
+
+// ✅ LIST floorplans (by user)
+app.get("/floorplans", async (req, res) => {
+  const userId = req.query.userId;
+
+  if (!userId) {
+    return res.status(400).json({ success: false, error: "Missing userId" });
+  }
+
+  try {
+    const [rows] = await pool.query(
+      `
+      SELECT id, room_id, version, updated_at
+      FROM floorplans
+      WHERE user_id = ?
+      ORDER BY updated_at DESC
+      `,
+      [String(userId)]
+    );
+
+    res.json({ success: true, floorplans: rows });
+  } catch (e) {
+    console.error("❌ List floorplans error:", e);
+    res.status(500).json({ success: false, error: "server_error" });
+  }
+});
+
+/* =========================
    404
 ========================= */
 app.use((req, res) => {
@@ -353,7 +454,11 @@ app.use((req, res) => {
 (async () => {
   try {
     await initializeTables();
-    app.listen(3000, () => console.log("✅ API running at http://localhost:3000"));
+
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () =>
+      console.log(`✅ API running at http://localhost:${PORT}`)
+    );
   } catch (e) {
     console.error("❌ Failed to init:", e);
     process.exit(1);
